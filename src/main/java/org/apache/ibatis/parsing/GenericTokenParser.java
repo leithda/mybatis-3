@@ -16,11 +16,14 @@
 package org.apache.ibatis.parsing;
 
 /**
+ * 通用的Token解析器
  * @author Clinton Begin
  */
 public class GenericTokenParser {
 
+  // 开始的Token字符串
   private final String openToken;
+  // 结束的Token字符串
   private final String closeToken;
   private final TokenHandler handler;
 
@@ -30,57 +33,87 @@ public class GenericTokenParser {
     this.handler = handler;
   }
 
+  /**
+   * 解析 Token 字符串<br>
+   *
+   * 解析以 openToken 开始，以 closeToken 结束的 Token ，并提交给 handler 进行处理
+   * @param text 字符串
+   * @return Token
+   */
   public String parse(String text) {
     if (text == null || text.isEmpty()) {
       return "";
     }
     // search open token
+    // 寻找开始的Token字符串
     int start = text.indexOf(openToken);
-    if (start == -1) {
+    if (start == -1) { // 找不到直接返回
       return text;
     }
     char[] src = text.toCharArray();
-    int offset = 0;
-    final StringBuilder builder = new StringBuilder();
-    StringBuilder expression = null;
+    int offset = 0; // 起始查找位置
+    final StringBuilder builder = new StringBuilder();  // 保存结果
+    StringBuilder expression = null;  // 匹配到 openToken 和 closeToken 之间的表达式
+
+    // 循环匹配
     while (start > -1) {
+      // 转义字符
       if (start > 0 && src[start - 1] == '\\') {
         // this open token is escaped. remove the backslash and continue.
+        // 因为 openToken 前面一个位置是 \ 转义字符，所以忽略 \
+        // 添加 [offset, start - offset - 1] 和 openToken 的内容，添加到 builder 中
         builder.append(src, offset, start - offset - 1).append(openToken);
         offset = start + openToken.length();
+      // 非转义字符
       } else {
         // found open token. let's search close token.
+        // 创建 expression 对象
         if (expression == null) {
           expression = new StringBuilder();
         } else {
           expression.setLength(0);
         }
+        // 添加 offset 和 openToken 之间的内容，添加到 builder 中
         builder.append(src, offset, start - offset);
+        // 修改 offset
         offset = start + openToken.length();
+        // 寻找结束的 closeToken 的位置
         int end = text.indexOf(closeToken, offset);
         while (end > -1) {
+          // 转义
           if (end > offset && src[end - 1] == '\\') {
             // this close token is escaped. remove the backslash and continue.
+            // 因为 endToken 前面一个位置是 \ 转义字符，所以忽略 \
+            // 添加 [offset, end - offset - 1] 和 endToken 的内容，添加到 builder 中
             expression.append(src, offset, end - offset - 1).append(closeToken);
             offset = end + closeToken.length();
             end = text.indexOf(closeToken, offset);
+          // 非转义
           } else {
+            // 添加 [offset, end - offset] 的内容，添加到 builder 中
             expression.append(src, offset, end - offset);
             offset = end + closeToken.length();
             break;
           }
         }
+        // 拼接内容
         if (end == -1) {
           // close token was not found.
+          // token 未找到,直接拼接
           builder.append(src, start, src.length - start);
+          // 修改offset
           offset = src.length;
         } else {
+          // <x> closeToken 找到，将 expression 提交给 handler 处理 ，并将处理结果添加到 builder 中
           builder.append(handler.handleToken(expression.toString()));
+          // 修改 offset
           offset = end + closeToken.length();
         }
       }
+      // 继续，寻找开始的 openToken 的位置
       start = text.indexOf(openToken, offset);
     }
+    // 拼接剩余的部分
     if (offset < src.length) {
       builder.append(src, offset, src.length - offset);
     }
