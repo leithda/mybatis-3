@@ -7,9 +7,9 @@
 | [`XPathParser`](https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/parsing/XPathParser.java) | **解析器对象**,主要用于解析`mybatis`的配置以及`mapper`的`xml`文件 |
 | [`XMLMapperEntityResolver`](https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/builder/xml/XMLMapperEntityResolver.java) | **EntityResolver实现类**,实现了`EntityResolver`接口，用于加载本地的`mybatis-3-config.dtd` 和 `mybatis-3-mapper.dtd` 这两个 DTD 文件,避免弱网络状况下使用`mybatis`加载问题 |
 | [`GenericTokenParser`](https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/parsing/GenericTokenParser.java) | **通用Token解析器**,解析特定占位符交给`TokenHandler`进行特定处理 |
-| [`PropertyParser`](https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/parsing/PropertyParser.java) | **动态属性解析器**,                                          |
+| [`PropertyParser`](https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/parsing/PropertyParser.java) | **动态属性解析器**,使用`VariableTokenHandler`对动态属性进行处理 |
 | [`TokenHandler`](https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/parsing/TokenHandler.java) | **TokenHandler**,Token处理接口，定义了`handleToken`方法对`toekn`进行处理。 |
-| [`VariableTokenHandler`](<https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/parsing/PropertyParser.java>) | **变量Token处理器**,`PropertyParser`内部类，实现了`handleToken`对`token`进行处理 |
+| [`VariableTokenHandler`](<https://github.com/leithda/mybatis-3/blob/master/src/main/java/org/apache/ibatis/parsing/PropertyParser.java>) | **动态变量Token处理器**,`PropertyParser`内部类，实现了`handleToken`对`token`进行处理 |
 
 ### 主要方法
 
