@@ -302,7 +302,7 @@ public class Reflector {
    * 获取更加匹配的 setter
    * @param setter1 setter1
    * @param setter2 setter2
-   * @param property property
+   * @param property 属性
    * @return 更加匹配的方法
    */
   private Method pickBetterSetter(Method setter1, Method setter2, String property) {
@@ -374,7 +374,7 @@ public class Reflector {
     // 获取所有的 filed
     Field[] fields = clazz.getDeclaredFields();
     for (Field field : fields) {
-      // 如果 setMethods 中没有这个属性
+      // <1> 如果 setMethods 中没有这个属性
       if (!setMethods.containsKey(field.getName())) {
         // issue #379 - removed the check for final because JDK 1.5 allows
         // modification of final fields through reflection (JSR-133). (JGB)
