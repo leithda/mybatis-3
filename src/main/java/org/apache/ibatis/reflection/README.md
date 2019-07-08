@@ -1654,14 +1654,982 @@ public class BeanWrapper extends BaseWrapper {
 ```
 
 ### MapWrapper
+`org.apache.ibatis.reflection.wrapper.MapWrapper`，继承 BaseWrapper 抽象类，Map 对象的 ObjectWrapper 实现类。
 
+MapWrapper 和 BeanWrapper 的大体逻辑是一样的，差异点主要如下：
+```java
+// MapWrapper.java
 
+// object 变成了 map 
+private final Map<String, Object> map;
 
+// 属性的操作变成了
+map.put(prop.getName(), value);
+map.get(prop.getName());
+```
 
+## CollectionWrapper
+`org.apache.ibatis.reflection.wrapper.CollectionWrapper` ，实现 ObjectWrapper 接口，集合 ObjectWrapper 实现类。比较简单，直接看代码：
+```java
+public class CollectionWrapper implements ObjectWrapper {
 
+  private final Collection<Object> object;
 
+  public CollectionWrapper(MetaObject metaObject, Collection<Object> object) {
+    this.object = object;
+  }
 
+  @Override
+  public Object get(PropertyTokenizer prop) {
+    throw new UnsupportedOperationException();
+  }
 
+  @Override
+  public void set(PropertyTokenizer prop, Object value) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String findProperty(String name, boolean useCamelCaseMapping) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String[] getGetterNames() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String[] getSetterNames() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Class<?> getSetterType(String name) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Class<?> getGetterType(String name) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean hasSetter(String name) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean hasGetter(String name) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public MetaObject instantiatePropertyValue(String name, PropertyTokenizer prop, ObjectFactory objectFactory) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean isCollection() {
+    return true;
+  }
+
+  @Override
+  public void add(Object element) {
+    object.add(element);
+  }
+
+  @Override
+  public <E> void addAll(List<E> element) {
+    object.addAll(element);
+  }
+
+}
+```
+ - 代码比较简单，支持`add`和`addAll`元素操作
+
+# ObjectWrapperFactory
+`org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory`，ObjectWrapper 工厂接口。代码如下：
+```java
+public interface ObjectWrapperFactory {
+
+  /**
+   * 是否包装了指定对象
+   * @param object 对象
+   * @return 是否
+   */
+  boolean hasWrapperFor(Object object);
+
+  /**
+   * 获取指定对象的 ObjectWrapper 实例
+   * @param metaObject  MetaObject 对象
+   * @param object 指定对象
+   * @return ObjectWrapper 对象
+   */
+  ObjectWrapper getWrapperFor(MetaObject metaObject, Object object);
+
+}
+```
+
+## DefaultObjectWrapperFactory
+`org.apache.ibatis.reflection.wrapper.DefaultObjectWrapperFactory` ，实现 `ObjectWrapperFactory` 接口，默认 `ObjectWrapperFactory` 实现类。代码如下：
+```java
+public class DefaultObjectWrapperFactory implements ObjectWrapperFactory {
+
+  @Override
+  public boolean hasWrapperFor(Object object) {
+    return false;
+  }
+
+  @Override
+  public ObjectWrapper getWrapperFor(MetaObject metaObject, Object object) {
+    throw new ReflectionException("The DefaultObjectWrapperFactory should never be called to provide an ObjectWrapper.");
+  }
+
+}
+```
+ - 空的对象，默认情况下不使用默认实现
+ 
+# MetaObject
+`org.apache.ibatis.reflection.MetaObject` ，对象元数据，提供了对象的属性值的获得和设置等等方法。😈 可以理解成，对 BaseWrapper 操作的进一步增强。
+
+## 构造方法
+```java
+public class MetaObject {
+
+  // 封装过的 Object 对象
+  private final Object originalObject;
+  private final ObjectWrapper objectWrapper;
+  private final ObjectFactory objectFactory;
+  private final ObjectWrapperFactory objectWrapperFactory;
+  private final ReflectorFactory reflectorFactory;
+
+  private MetaObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory) {
+    this.originalObject = object;
+    this.objectFactory = objectFactory;
+    this.objectWrapperFactory = objectWrapperFactory;
+    this.reflectorFactory = reflectorFactory;
+
+    // <1>
+    if (object instanceof ObjectWrapper) {
+      this.objectWrapper = (ObjectWrapper) object;
+    } else if (objectWrapperFactory.hasWrapperFor(object)) {
+      // 创建 ObjectWrapper 对象
+      this.objectWrapper = objectWrapperFactory.getWrapperFor(this, object);
+    } else if (object instanceof Map) {
+      // 创建 MapWrapper 对象
+      this.objectWrapper = new MapWrapper(this, (Map) object);
+    } else if (object instanceof Collection) {
+      // 创建 CollectionWrapper对象
+      this.objectWrapper = new CollectionWrapper(this, (Collection) object);
+    } else {
+      // 创建 BeanWrapper 对象
+      this.objectWrapper = new BeanWrapper(this, object);
+    }
+  }
+  
+  // ...
+}
+```
+ - `<1>`处，会根据object类型的不同，创建对应的ObjectWrapper对象
+ - `<2>`处，我们可以看到 `ObjectWrapperFactory` 的使用，因为默认情况下的 DefaultObjectWrapperFactory 未实现任何逻辑，所以这块逻辑相当于暂时不起作用。如果想要起作用，需要自定义 ObjectWrapperFactory 的实现类。
+## forObject
+`#forObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory)` 静态方法，创建 MetaObject 对象。代码如下：
+```java
+  /**
+   * 创建 MetaObject 对象
+   * @param object  原始 Object 对象
+   * @param objectFactory 对象工厂类
+   * @param objectWrapperFactory 对象装饰类对应工厂类
+   * @param reflectorFactory 反射器工厂类
+   * @return MetaObject 对象
+   */
+  public static MetaObject forObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory) {
+    if (object == null) {
+      return SystemMetaObject.NULL_META_OBJECT;
+    } else {
+      return new MetaObject(object, objectFactory, objectWrapperFactory, reflectorFactory);
+    }
+  }
+```
+ - 如果 object 为空的情况下，返回 SystemMetaObject.NULL_META_OBJECT 。
+## metaObjectForProperty
+`#metaObjectForProperty(String name)` 方法，创建指定属性的 MetaObject 对象。代码如下：
+```java
+  /**
+   * 创建指定属性的 MetaObject 对象
+   * @param name 属性名
+   * @return MetaObject 对象
+   */
+  public MetaObject metaObjectForProperty(String name) {
+    Object value = getValue(name);
+    return MetaObject.forObject(value, objectFactory, objectWrapperFactory, reflectorFactory);
+  }
+```
+
+## getValue
+`#getValue(String name)` 方法，获得指定属性的值。代码如下：
+```java
+  /**
+   * 获取指定属性的值
+   * @param name 属性名
+   * @return 属性值
+   */
+  public Object getValue(String name) {
+    // 执行分词
+    PropertyTokenizer prop = new PropertyTokenizer(name);
+    // 有子表达式
+    if (prop.hasNext()) {
+      // 创建 MetaObject 对象
+      MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
+      // <2> 递归判断子表达式 children ，获取值
+      if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
+        return null;
+      } else {
+        return metaValue.getValue(prop.getChildren());
+      }
+    // 无子表达式
+    } else {
+      // <1> 获取值
+      return objectWrapper.get(prop);
+    }
+  }
+```
+ - 对name 进行递归分词，直到`<1>`处，返回属性值
+ 
+## setValue
+`#setValue(String name, Object value)` 方法，设置指定属性的指定值。代码如下：
+```java
+  /**
+   * 设置指定属性的值
+   * @param name 属性名
+   * @param value 属性值
+   */
+  public void setValue(String name, Object value) {
+    // 分词
+    PropertyTokenizer prop = new PropertyTokenizer(name);
+    // 有子表达式
+    if (prop.hasNext()) {
+      // 创建 MetaObject 对象
+      MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
+      // 递归判断子表达式 children ，设置值
+      if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
+        if (value == null) {
+          // don't instantiate child path if value is null
+          return;
+        } else {
+          // <1> 创建值
+          metaValue = objectWrapper.instantiatePropertyValue(name, prop, objectFactory);
+        }
+      }
+      // 设置值
+      metaValue.setValue(prop.getChildren(), value);
+      // 没有子表达式
+    } else {
+      objectWrapper.set(prop, value);
+    }
+  }
+```
+## isCollection
+`#isCollection()`方法，判断是否为集合。代码如下：
+```java
+// MetaObject.java
+
+public boolean isCollection() {
+    return objectWrapper.isCollection();
+}
+
+public void add(Object element) {
+    objectWrapper.add(element);
+}
+
+public <E> void addAll(List<E> list) {
+    objectWrapper.addAll(list);
+}
+```
+
+# SystemMetaObject
+`org.apache.ibatis.reflection.SystemMetaObject` ，系统级的 MetaObject 对象，主要提供了 ObjectFactory、ObjectWrapperFactory、空 MetaObject 的单例。代码如下：
+```java
+// SystemMetaObject.java
+
+public final class SystemMetaObject {
+
+    /**
+     * ObjectFactory 的单例
+     */
+    public static final ObjectFactory DEFAULT_OBJECT_FACTORY = new DefaultObjectFactory();
+    /**
+     * ObjectWrapperFactory 的单例
+     */
+    public static final ObjectWrapperFactory DEFAULT_OBJECT_WRAPPER_FACTORY = new DefaultObjectWrapperFactory();
+
+    /**
+     * 空对象的 MetaObject 对象单例
+     */
+    public static final MetaObject NULL_META_OBJECT = MetaObject.forObject(NullObject.class, DEFAULT_OBJECT_FACTORY, DEFAULT_OBJECT_WRAPPER_FACTORY, new DefaultReflectorFactory());
+
+    private SystemMetaObject() {
+        // Prevent Instantiation of Static Class
+    }
+
+    private static class NullObject {
+    }
+
+    /**
+     * 创建 MetaObject 对象
+     *
+     * @param object 指定对象
+     * @return MetaObject 对象
+     */
+    public static MetaObject forObject(Object object) {
+        return MetaObject.forObject(object, DEFAULT_OBJECT_FACTORY, DEFAULT_OBJECT_WRAPPER_FACTORY, new DefaultReflectorFactory());
+    }
+
+}
+```
+ - 核心就是 `#forObject(Object object)` 方法，创建指定对象的 MetaObject 对象。
+
+# ParamNameUtil
+`org.apache.ibatis.reflection.ParamNameUtil` ，参数名工具类，获得构造方法、普通方法的参数列表。代码如下：
+```java
+public class ParamNameUtil {
+  /**
+   * 获得普通方法的参数列表
+   *
+   * @param method 普通方法
+   * @return 参数集合
+   */
+  public static List<String> getParamNames(Method method) {
+    return getParameterNames(method);
+  }
+  /**
+   * 获得构造方法的参数列表
+   *
+   * @param constructor 构造方法
+   * @return 参数集合
+   */
+  public static List<String> getParamNames(Constructor<?> constructor) {
+    return getParameterNames(constructor);
+  }
+
+  /**
+   * 获得方法的参数列表
+   * @param executable 可执行实例,子类是method和constructor
+   * @return 参数列表
+   */
+  private static List<String> getParameterNames(Executable executable) {
+    return Arrays.stream(executable.getParameters()).map(Parameter::getName).collect(Collectors.toList());
+  }
+
+  private ParamNameUtil() {
+    super();
+  }
+}
+```
+
+# ParamNameResolver
+`org.apache.ibatis.reflection.ParamNameResolver` ，参数名解析器。
+
+## 构造方法
+```java
+
+  /**
+   * <p>
+   * The key is the index and the value is the name of the parameter.<br />
+   * The name is obtained from {@link Param} if specified. When {@link Param} is not specified,
+   * the parameter index is used. Note that this index could be different from the actual index
+   * when the method has special parameters (i.e. {@link RowBounds} or {@link ResultHandler}).
+   * </p>
+   * <ul>
+   * <li>aMethod(@Param("M") int a, @Param("N") int b) -&gt; {{0, "M"}, {1, "N"}}</li>
+   * <li>aMethod(int a, int b) -&gt; {{0, "0"}, {1, "1"}}</li>
+   * <li>aMethod(int a, RowBounds rb, int b) -&gt; {{0, "0"}, {2, "1"}}</li>
+   * </ul>
+   *
+   * 参数名映射
+   * KEY : 参数顺序
+   * VALUE: 参数名称
+   */
+  private final SortedMap<Integer, String> names;
+
+  /**
+   * 是否有{@link Param} 注解的参数
+   */
+  private boolean hasParamAnnotation;
+
+  /**
+   * 构造函数
+   * @param config 配置类
+   * @param method 方法
+   */
+  public ParamNameResolver(Configuration config, Method method) {
+    final Class<?>[] paramTypes = method.getParameterTypes();
+    final Annotation[][] paramAnnotations = method.getParameterAnnotations();
+    final SortedMap<Integer, String> map = new TreeMap<>();
+    int paramCount = paramAnnotations.length;
+    // get names from @Param annotations
+    for (int paramIndex = 0; paramIndex < paramCount; paramIndex++) {
+      // 如果是特殊参数,忽略
+      if (isSpecialParameter(paramTypes[paramIndex])) {
+        // skip special parameters
+        continue;
+      }
+      // 首先,从@Param注解中获取参数
+      String name = null;
+      for (Annotation annotation : paramAnnotations[paramIndex]) {
+        if (annotation instanceof Param) {
+          hasParamAnnotation = true;
+          name = ((Param) annotation).value();
+          break;
+        }
+      }
+      if (name == null) {
+        // @Param was not specified.
+        // 其次,获取真实的参数名
+        if (config.isUseActualParamName()) {
+          name = getActualParamName(method, paramIndex);
+        }
+        // 最差,使用map的顺序，作为编号
+        if (name == null) {
+          // use the parameter index as the name ("0", "1", ...)
+          // gcode issue #71
+          name = String.valueOf(map.size());
+        }
+      }
+      // 添加到map中
+      map.put(paramIndex, name);
+    }
+    // 构建不可变集合
+    names = Collections.unmodifiableSortedMap(map);
+  }
+
+  private String getActualParamName(Method method, int paramIndex) {
+    return ParamNameUtil.getParamNames(method).get(paramIndex);
+  }
+
+  private static boolean isSpecialParameter(Class<?> clazz) {
+    return RowBounds.class.isAssignableFrom(clazz) || ResultHandler.class.isAssignableFrom(clazz);
+  }
+  // ...
+}
+```
+
+## getNamedParams
+`#getNamedParams(Object[] args)` 方法，获得参数名与值的映射。代码如下：
+```java
+// ParamNameResolver.java
+
+private static final String GENERIC_NAME_PREFIX = "param";
+
+/**
+ * <p>
+ * A single non-special parameter is returned without a name.
+ * Multiple parameters are named using the naming rule.
+ * In addition to the default names, this method also adds the generic names (param1, param2,
+ * ...).
+ * </p>
+ *
+ * 获得参数名与值的映射
+ */
+public Object getNamedParams(Object[] args) {
+    final int paramCount = names.size();
+    // 无参数，则返回 null
+    if (args == null || paramCount == 0) {
+        return null;
+    // 只有一个非注解的参数，直接返回首元素
+    } else if (!hasParamAnnotation && paramCount == 1) {
+        return args[names.firstKey()];
+    } else {
+        // 集合。
+        // 组合 1 ：KEY：参数名，VALUE：参数值
+        // 组合 2 ：KEY：GENERIC_NAME_PREFIX + 参数顺序，VALUE ：参数值
+        final Map<String, Object> param = new ParamMap<>();
+        int i = 0;
+        // 遍历 names 集合
+        for (Map.Entry<Integer, String> entry : names.entrySet()) {
+            // 组合 1 ：添加到 param 中
+            param.put(entry.getValue(), args[entry.getKey()]);
+            // add generic param names (param1, param2, ...)
+            // 组合 2 ：添加到 param 中
+            final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
+            // ensure not to overwrite parameter named with @Param
+            if (!names.containsValue(genericParamName)) {
+                param.put(genericParamName, args[entry.getKey()]);
+            }
+            i++;
+        }
+        return param;
+    }
+}
+```
+
+# TypeParameterResolver
+`org.apache.ibatis.reflection.TypeParameterResolver` ，工具类，`java.lang.reflect.Type` 参数解析器
+
+## 暴露方法
+`TypeParameterResolver` 暴露了三个 公用静态方法，分别用于解析 Field 类型、Method 返回类型、方法参数类型。代码如下：
+```java
+  /**
+   * 解析属性类型
+   * @return The field type as {@link Type}. If it has type parameters in the declaration,<br>
+   *         they will be resolved to the actual runtime {@link Type}s.
+   */
+  public static Type resolveFieldType(Field field, Type srcType) {
+    // 属性类型
+    Type fieldType = field.getGenericType();
+    // 定义的类
+    Class<?> declaringClass = field.getDeclaringClass();
+    // 解析类型
+    return resolveType(fieldType, srcType, declaringClass);
+  }
+
+  /**
+   * 解析方法返回类型
+   * @return The return type of the method as {@link Type}. If it has type parameters in the declaration,<br>
+   *         they will be resolved to the actual runtime {@link Type}s.
+   */
+  public static Type resolveReturnType(Method method, Type srcType) {
+    // 属性类型
+    Type returnType = method.getGenericReturnType();
+    // 定义的类
+    Class<?> declaringClass = method.getDeclaringClass();
+    // 解析类型
+    return resolveType(returnType, srcType, declaringClass);
+  }
+
+  /**
+   * 解析方法参数的类型数组
+   * @return The parameter types of the method as an array of {@link Type}s. If they have type parameters in the declaration,<br>
+   *         they will be resolved to the actual runtime {@link Type}s.
+   */
+  public static Type[] resolveParamTypes(Method method, Type srcType) {
+    // 获得方法参数类型数组
+    Type[] paramTypes = method.getGenericParameterTypes();
+    // 定义的类
+    Class<?> declaringClass = method.getDeclaringClass();
+    // 解析类型们
+    Type[] result = new Type[paramTypes.length];
+    for (int i = 0; i < paramTypes.length; i++) {
+      result[i] = resolveType(paramTypes[i], srcType, declaringClass);
+    }
+    return result;
+  }
+```
+ - 大体逻辑都类似，最终都会调用 `#resolveType(Type type, Type srcType, Class<?> declaringClass)` 方法，解析类型。
+
+## resolveType
+`#resolveType(Type type, Type srcType, Class<?> declaringClass)` 方法，解析 type 类型。代码如下：
+```java
+  /**
+   * 解析类型
+   * @param type 类型
+   * @param srcType 来源类型
+   * @param declaringClass 定义的类
+   * @return 解析后的类型
+   */
+  private static Type resolveType(Type type, Type srcType, Class<?> declaringClass) {
+    if (type instanceof TypeVariable) {
+      return resolveTypeVar((TypeVariable<?>) type, srcType, declaringClass);
+    } else if (type instanceof ParameterizedType) {
+      return resolveParameterizedType((ParameterizedType) type, srcType, declaringClass);
+    } else if (type instanceof GenericArrayType) {
+      return resolveGenericArrayType((GenericArrayType) type, srcType, declaringClass);
+    } else {
+      return type;
+    }
+  }
+```
+
+### resolveParameterizedType
+`#resolveParameterizedType(ParameterizedType parameterizedType, Type srcType, Class<?> declaringClass)` 方法，解析 ParameterizedType 类型。代码如下：
+```java
+  /**
+   * 解析 ParameterizedType 类型
+   * @param parameterizedType ParameterizedType 类型
+   * @param srcType 来源类型
+   * @param declaringClass 定义的类
+   * @return 解析后的类型
+   */
+  private static ParameterizedType resolveParameterizedType(ParameterizedType parameterizedType, Type srcType, Class<?> declaringClass) {
+    Class<?> rawType = (Class<?>) parameterizedType.getRawType();
+    // 【1】解析 <> 中实际类型
+    Type[] typeArgs = parameterizedType.getActualTypeArguments();
+    Type[] args = new Type[typeArgs.length];
+    for (int i = 0; i < typeArgs.length; i++) {
+      if (typeArgs[i] instanceof TypeVariable) {
+        args[i] = resolveTypeVar((TypeVariable<?>) typeArgs[i], srcType, declaringClass);
+      } else if (typeArgs[i] instanceof ParameterizedType) {
+        args[i] = resolveParameterizedType((ParameterizedType) typeArgs[i], srcType, declaringClass);
+      } else if (typeArgs[i] instanceof WildcardType) {
+        args[i] = resolveWildcardType((WildcardType) typeArgs[i], srcType, declaringClass);
+      } else {
+        args[i] = typeArgs[i];
+      }
+    }
+    // 【2】
+    return new ParameterizedTypeImpl(rawType, null, args);
+  }
+```
+ - `【1】`处，解析 <> 中实际类型。
+ - `【2】`处，创建 ParameterizedTypeImpl 对象。代码如下：
+ ```java
+   /**
+   * ParameterizedType 实现类
+   *
+   * 参数化类型，即泛型。例如：List<T>、Map<K, V>等带有参数化的配置
+   */
+  static class ParameterizedTypeImpl implements ParameterizedType {
+
+    // 以 List<T> 举例子
+
+    /**
+     * <> 前面实际类型
+     *
+     * 例如：List
+     */
+    private Class<?> rawType;
+
+    /**
+     * 如果这个类型是某个属性所有，则获取这个所有者类型；否则，返回 null
+     */
+    private Type ownerType;
+
+    /**
+     * <> 中实际类型
+     *
+     * 例如：T
+     */
+    private Type[] actualTypeArguments;
+
+    public ParameterizedTypeImpl(Class<?> rawType, Type ownerType, Type[] actualTypeArguments) {
+      super();
+      this.rawType = rawType;
+      this.ownerType = ownerType;
+      this.actualTypeArguments = actualTypeArguments;
+    }
+
+    @Override
+    public Type[] getActualTypeArguments() {
+      return actualTypeArguments;
+    }
+
+    @Override
+    public Type getOwnerType() {
+      return ownerType;
+    }
+
+    @Override
+    public Type getRawType() {
+      return rawType;
+    }
+
+    @Override
+    public String toString() {
+      return "ParameterizedTypeImpl [rawType=" + rawType + ", ownerType=" + ownerType + ", actualTypeArguments=" + Arrays.toString(actualTypeArguments) + "]";
+    }
+  }
+ ```
+ 
+ ### resolveWildcardType
+`#resolveWildcardType(WildcardType wildcardType, Type srcType, Class<?> declaringClass)`方法，解析 WildcardType 类型。代码如下：
+```java
+  /**
+   * 解析泛型类型
+   * @param wildcardType 泛型类型
+   * @param srcType 来源类型
+   * @param declaringClass 定义的类
+   * @return 解析后的类型
+   */
+  private static Type resolveWildcardType(WildcardType wildcardType, Type srcType, Class<?> declaringClass) {
+    // <1.1> 解析泛型表达式下界（下限 super）
+    Type[] lowerBounds = resolveWildcardTypeBounds(wildcardType.getLowerBounds(), srcType, declaringClass);
+    // <1.2> 解析泛型表达式上界（上限 extends）
+    Type[] upperBounds = resolveWildcardTypeBounds(wildcardType.getUpperBounds(), srcType, declaringClass);
+    // <2> 创建 WildcardTypeImpl 对象
+    return new WildcardTypeImpl(lowerBounds, upperBounds);
+  }
+
+  private static Type[] resolveWildcardTypeBounds(Type[] bounds, Type srcType, Class<?> declaringClass) {
+    Type[] result = new Type[bounds.length];
+    for (int i = 0; i < bounds.length; i++) {
+      if (bounds[i] instanceof TypeVariable) {
+        result[i] = resolveTypeVar((TypeVariable<?>) bounds[i], srcType, declaringClass);
+      } else if (bounds[i] instanceof ParameterizedType) {
+        result[i] = resolveParameterizedType((ParameterizedType) bounds[i], srcType, declaringClass);
+      } else if (bounds[i] instanceof WildcardType) {
+        result[i] = resolveWildcardType((WildcardType) bounds[i], srcType, declaringClass);
+      } else {
+        result[i] = bounds[i];
+      }
+    }
+    return result;
+  }
+```
+- `<1.1>`、`<1.2>` 处，解析泛型表达式下界（下限 super）和上界( 上限 extends )。
+- `<2>` 创建 WildcardTypeImpl 对象。代码如下：
+```java
+  /**
+   * WildcardType 实现类
+   *
+   * 泛型表达式（或者通配符表达式），即 ? extend Number、? super Integer 这样的表达式。
+   * WildcardType 虽然是 Type 的子接口，但却不是 Java 类型中的一种。
+   */
+  static class WildcardTypeImpl implements WildcardType {
+
+    /**
+     * 泛型表达式下界（下限 super）
+     */
+    private Type[] lowerBounds;
+    /**
+     * 泛型表达式上界（上界 extends）
+     */
+    private Type[] upperBounds;
+
+    WildcardTypeImpl(Type[] lowerBounds, Type[] upperBounds) {
+      super();
+      this.lowerBounds = lowerBounds;
+      this.upperBounds = upperBounds;
+    }
+
+    @Override
+    public Type[] getLowerBounds() {
+      return lowerBounds;
+    }
+
+    @Override
+    public Type[] getUpperBounds() {
+      return upperBounds;
+    }
+  }
+```
+
+### resolveGenericArrayType
+```java
+  /**
+   * 解析数组类型
+   * @param genericArrayType 数组类型
+   * @param srcType 来源类型
+   * @param declaringClass 定义的类
+   * @return 解析后的类型
+   */
+  private static Type resolveGenericArrayType(GenericArrayType genericArrayType, Type srcType, Class<?> declaringClass) {
+    // 【1】解析 componentType
+    Type componentType = genericArrayType.getGenericComponentType();
+    Type resolvedComponentType = null;
+    if (componentType instanceof TypeVariable) {
+      resolvedComponentType = resolveTypeVar((TypeVariable<?>) componentType, srcType, declaringClass);
+    } else if (componentType instanceof GenericArrayType)
+      resolvedComponentType = resolveGenericArrayType((GenericArrayType) componentType, srcType, declaringClass);
+    else if (componentType instanceof ParameterizedType) {
+      resolvedComponentType = resolveParameterizedType((ParameterizedType) componentType, srcType, declaringClass);
+    }
+    // 【2】创建 GenericArrayTypeImpl 对象
+    if (resolvedComponentType instanceof Class) {
+      return Array.newInstance((Class<?>) resolvedComponentType, 0).getClass();
+    } else {
+      return new GenericArrayTypeImpl(resolvedComponentType);
+    }
+  }
+```
+ - `【1】` 处，解析 componentType 类型。
+ - `【2】` 处，创建 GenericArrayTypeImpl 对象。代码如下：
+ ```java
+   /**
+   * GenericArrayType 实现类
+   *
+   * 泛型数组类型，用来描述 ParameterizedType、TypeVariable 类型的数组；即 List<T>[]、T[] 等；
+   */
+  static class GenericArrayTypeImpl implements GenericArrayType {
+    /**
+     * 数组元素类型
+     */
+    private Type genericComponentType;
+
+    GenericArrayTypeImpl(Type genericComponentType) {
+      super();
+      this.genericComponentType = genericComponentType;
+    }
+
+    @Override
+    public Type getGenericComponentType() {
+      return genericComponentType;
+    }
+  }
+ ```
+ 
+ ### resolveTypeVar
+ - TODO,芋艿没看懂，我自觉看不懂，先放弃
+ 
+ # ArrayUtil
+ `org.apache.ibatis.reflection.ArrayUtil` ，数组工具类。代码如下：
+ ```java
+ public class ArrayUtil {
+
+  /**
+   * Returns a hash code for {@code obj}.
+   *
+   * @param obj
+   *          The object to get a hash code for. May be an array or <code>null</code>.
+   * @return A hash code of {@code obj} or 0 if {@code obj} is <code>null</code>
+   */
+  public static int hashCode(Object obj) {
+    if (obj == null) {
+      // for consistency with Arrays#hashCode() and Objects#hashCode()
+      return 0;
+    }
+    // 普通类
+    final Class<?> clazz = obj.getClass();
+    if (!clazz.isArray()) {
+      return obj.hashCode();
+    }
+    // 数组类型
+    final Class<?> componentType = clazz.getComponentType();
+    if (long.class.equals(componentType)) {
+      return Arrays.hashCode((long[]) obj);
+    } else if (int.class.equals(componentType)) {
+      return Arrays.hashCode((int[]) obj);
+    } else if (short.class.equals(componentType)) {
+      return Arrays.hashCode((short[]) obj);
+    } else if (char.class.equals(componentType)) {
+      return Arrays.hashCode((char[]) obj);
+    } else if (byte.class.equals(componentType)) {
+      return Arrays.hashCode((byte[]) obj);
+    } else if (boolean.class.equals(componentType)) {
+      return Arrays.hashCode((boolean[]) obj);
+    } else if (float.class.equals(componentType)) {
+      return Arrays.hashCode((float[]) obj);
+    } else if (double.class.equals(componentType)) {
+      return Arrays.hashCode((double[]) obj);
+    } else {
+      return Arrays.hashCode((Object[]) obj);
+    }
+  }
+
+  /**
+   * Compares two objects. Returns <code>true</code> if
+   * <ul>
+   * <li>{@code thisObj} and {@code thatObj} are both <code>null</code></li>
+   * <li>{@code thisObj} and {@code thatObj} are instances of the same type and
+   * {@link Object#equals(Object)} returns <code>true</code></li>
+   * <li>{@code thisObj} and {@code thatObj} are arrays with the same component type and
+   * equals() method of {@link Arrays} returns <code>true</code> (not deepEquals())</li>
+   * </ul>
+   *
+   * @param thisObj
+   *          The left hand object to compare. May be an array or <code>null</code>
+   * @param thatObj
+   *          The right hand object to compare. May be an array or <code>null</code>
+   * @return <code>true</code> if two objects are equal; <code>false</code> otherwise.
+   */
+  public static boolean equals(Object thisObj, Object thatObj) {
+    if (thisObj == null) {
+      return thatObj == null;
+    } else if (thatObj == null) {
+      return false;
+    }
+    final Class<?> clazz = thisObj.getClass();
+    if (!clazz.equals(thatObj.getClass())) {
+      return false;
+    }
+    // 普通类
+    if (!clazz.isArray()) {
+      return thisObj.equals(thatObj);
+    }
+    // 数组类型
+    final Class<?> componentType = clazz.getComponentType();
+    if (long.class.equals(componentType)) {
+      return Arrays.equals((long[]) thisObj, (long[]) thatObj);
+    } else if (int.class.equals(componentType)) {
+      return Arrays.equals((int[]) thisObj, (int[]) thatObj);
+    } else if (short.class.equals(componentType)) {
+      return Arrays.equals((short[]) thisObj, (short[]) thatObj);
+    } else if (char.class.equals(componentType)) {
+      return Arrays.equals((char[]) thisObj, (char[]) thatObj);
+    } else if (byte.class.equals(componentType)) {
+      return Arrays.equals((byte[]) thisObj, (byte[]) thatObj);
+    } else if (boolean.class.equals(componentType)) {
+      return Arrays.equals((boolean[]) thisObj, (boolean[]) thatObj);
+    } else if (float.class.equals(componentType)) {
+      return Arrays.equals((float[]) thisObj, (float[]) thatObj);
+    } else if (double.class.equals(componentType)) {
+      return Arrays.equals((double[]) thisObj, (double[]) thatObj);
+    } else {
+      return Arrays.equals((Object[]) thisObj, (Object[]) thatObj);
+    }
+  }
+
+  /**
+   * If the {@code obj} is an array, toString() method of {@link Arrays} is called. Otherwise
+   * {@link Object#toString()} is called. Returns "null" if {@code obj} is <code>null</code>.
+   *
+   * @param obj
+   *          An object. May be an array or <code>null</code>.
+   * @return String representation of the {@code obj}.
+   */
+  public static String toString(Object obj) {
+    if (obj == null) {
+      return "null";
+    }
+    // 普通类
+    final Class<?> clazz = obj.getClass();
+    if (!clazz.isArray()) {
+      return obj.toString();
+    }
+    // 数组类型
+    final Class<?> componentType = obj.getClass().getComponentType();
+    if (long.class.equals(componentType)) {
+      return Arrays.toString((long[]) obj);
+    } else if (int.class.equals(componentType)) {
+      return Arrays.toString((int[]) obj);
+    } else if (short.class.equals(componentType)) {
+      return Arrays.toString((short[]) obj);
+    } else if (char.class.equals(componentType)) {
+      return Arrays.toString((char[]) obj);
+    } else if (byte.class.equals(componentType)) {
+      return Arrays.toString((byte[]) obj);
+    } else if (boolean.class.equals(componentType)) {
+      return Arrays.toString((boolean[]) obj);
+    } else if (float.class.equals(componentType)) {
+      return Arrays.toString((float[]) obj);
+    } else if (double.class.equals(componentType)) {
+      return Arrays.toString((double[]) obj);
+    } else {
+      return Arrays.toString((Object[]) obj);
+    }
+  }
+}
+ ```
+ 
+# ExceptionUtil
+`org.apache.ibatis.reflection.ExceptionUtil`，异常工具类。代码如下：
+```java
+public class ExceptionUtil {
+
+  private ExceptionUtil() {
+    // Prevent Instantiation
+  }
+
+  /**
+   * 去掉异常的包装
+   *
+   * @param wrapped 被包装的异常
+   * @return 去除包装后的异常
+   */
+  public static Throwable unwrapThrowable(Throwable wrapped) {
+    Throwable unwrapped = wrapped;
+    while (true) {
+      if (unwrapped instanceof InvocationTargetException) {
+        unwrapped = ((InvocationTargetException) unwrapped).getTargetException();
+      } else if (unwrapped instanceof UndeclaredThrowableException) {
+        unwrapped = ((UndeclaredThrowableException) unwrapped).getUndeclaredThrowable();
+      } else {
+        return unwrapped;
+      }
+    }
+  }
+
+```
 
 
 ***未完待续***
