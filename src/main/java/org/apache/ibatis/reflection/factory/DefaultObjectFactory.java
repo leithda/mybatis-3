@@ -55,6 +55,10 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
     return (T) instantiateClass(classToCreate, constructorArgTypes, constructorArgs);
   }
 
+  /**
+   * 设置系统属性
+   * @param properties 配置属性
+   */
   @Override
   public void setProperties(Properties properties) {
     // no props for default

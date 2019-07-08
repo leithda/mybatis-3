@@ -566,6 +566,11 @@ public class Reflector {
     return method;
   }
 
+  /**
+   * 获取指定属性的 GetInvoker 对象
+   * @param propertyName 属性名称
+   * @return Invoker 对象
+   */
   public Invoker getGetInvoker(String propertyName) {
     Invoker method = getMethods.get(propertyName);
     if (method == null) {
@@ -575,10 +580,9 @@ public class Reflector {
   }
 
   /**
-   * Gets the type for a property setter.
-   *
-   * @param propertyName - the name of the property
-   * @return The Class of the property setter
+   * 获取指定属性的setter的参数类型
+   * @param propertyName 属性名称
+   * @return 参数类型
    */
   public Class<?> getSetterType(String propertyName) {
     Class<?> clazz = setTypes.get(propertyName);
@@ -589,10 +593,9 @@ public class Reflector {
   }
 
   /**
-   * Gets the type for a property getter.
-   *
-   * @param propertyName - the name of the property
-   * @return The Class of the property getter
+   * 获取指定属性getter的返回类型
+   * @param propertyName 属性名称
+   * @return 返回类型
    */
   public Class<?> getGetterType(String propertyName) {
     Class<?> clazz = getTypes.get(propertyName);
@@ -603,43 +606,44 @@ public class Reflector {
   }
 
   /**
-   * Gets an array of the readable properties for an object.
-   *
-   * @return The array
+   * 获取可读属性数组
+   * @return 属性数组
    */
   public String[] getGetablePropertyNames() {
     return readablePropertyNames;
   }
 
   /**
-   * Gets an array of the writable properties for an object.
-   *
-   * @return The array
+   * 获取可写属性数组
+   * @return 属性数组
    */
   public String[] getSetablePropertyNames() {
     return writablePropertyNames;
   }
 
   /**
-   * Check to see if a class has a writable property by name.
-   *
-   * @param propertyName - the name of the property to check
-   * @return True if the object has a writable property by the name
+   * 检查指定属性是否有setter方法
+   * @param propertyName 属性名
+   * @return 是|否
    */
   public boolean hasSetter(String propertyName) {
     return setMethods.keySet().contains(propertyName);
   }
 
   /**
-   * Check to see if a class has a readable property by name.
-   *
-   * @param propertyName - the name of the property to check
-   * @return True if the object has a readable property by the name
+   * 检查指定属性是否有 getter 方法
+   * @param propertyName 属性名
+   * @return 是|否
    */
   public boolean hasGetter(String propertyName) {
     return getMethods.keySet().contains(propertyName);
   }
 
+  /**
+   * 获取属性名称
+   * @param name 不区分大小写属性名
+   * @return 大写属性名称
+   */
   public String findPropertyName(String name) {
     return caseInsensitivePropertyMap.get(name.toUpperCase(Locale.ENGLISH));
   }
