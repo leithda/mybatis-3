@@ -1362,7 +1362,7 @@ public interface ObjectWrapper {
  - 从接口中，我们可以看到，主要是对MetaObject方法的调用
 ---
 ObjectWrapper的子类实现如下图：
-{% asset_img ObjectWrapper.png ObjectWrapper UML 图 %}
+![TokenHandler](https://github.com/leithda/mybatis-3/blob/master/uml/ObjectWrapper.png?raw=true)
 
 ## BaseWrapper
 `org.apache.ibatis.reflection.wrapper.BaseWrapper` ，实现 ObjectWrapper 接口，ObjectWrapper 抽象类，为子类 BeanWrapper 和 MapWrapper 提供属性值的获取和设置的公用方法。代码如下：
