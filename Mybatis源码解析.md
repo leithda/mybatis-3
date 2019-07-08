@@ -20,7 +20,7 @@
 | io | 基础支持层 | 资源加载模块 | N |
 | type | 基础支持层 | 类型转化模块 | N |
 | annotations | 基础支持层 | 注解模块 | N |
-| exceptions | 基础支持层 | 异常3.4.2模块 | N |
+| exceptions | 基础支持层 | 异常模块 | [已经完成](https://github.com/leithda/mybatis-3/tree/master/src/main/java/org/apache/ibatis/execptions) |
 | session | 接口层 | 会话模块 | N |
 | jdbc | 其他 | JDBC 模块 | N |
 | lang | 其他 | Lang 模块 | N |
