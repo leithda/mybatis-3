@@ -3,8 +3,8 @@
   <ID>JAVA</ID>
   <OriginalElement>org.apache.ibatis.reflection.MetaObject</OriginalElement>
   <nodes>
-    <node x="219.0" y="673.0">org.apache.ibatis.reflection.property.PropertyCopier</node>
     <node x="0.0" y="673.0">org.apache.ibatis.reflection.SystemMetaObject</node>
+    <node x="219.0" y="673.0">org.apache.ibatis.reflection.property.PropertyCopier</node>
     <node x="335.0" y="375.0">org.apache.ibatis.reflection.ReflectorFactory</node>
     <node x="366.0" y="745.0">org.apache.ibatis.reflection.Reflector</node>
     <node x="210.0" y="226.0">org.apache.ibatis.reflection.invoker.Invoker</node>
@@ -22,51 +22,15 @@
     <node x="75.0" y="77.0">org.apache.ibatis.reflection.wrapper.BaseWrapper</node>
     <node x="154.0" y="154.0">org.apache.ibatis.reflection.wrapper.MapWrapper</node>
     <node x="0.0" y="601.0">org.apache.ibatis.reflection.factory.DefaultObjectFactory</node>
-    <node x="307.0" y="452.0">org.apache.ibatis.reflection.DefaultReflectorFactory</node>
     <node x="356.0" y="303.0">org.apache.ibatis.reflection.invoker.GetFieldInvoker</node>
+    <node x="307.0" y="452.0">org.apache.ibatis.reflection.DefaultReflectorFactory</node>
     <node x="195.0" y="745.0">org.apache.ibatis.reflection.MetaObject</node>
-    <node x="0.0" y="745.0">org.apache.ibatis.reflection.property.PropertyNamer</node>
     <node x="186.0" y="303.0">org.apache.ibatis.reflection.invoker.MethodInvoker</node>
+    <node x="0.0" y="745.0">org.apache.ibatis.reflection.property.PropertyNamer</node>
   </nodes>
   <notes />
   <edges>
-    <edge source="org.apache.ibatis.reflection.wrapper.MapWrapper" target="org.apache.ibatis.reflection.wrapper.BaseWrapper">
-      <point x="0.0" y="-13.5" />
-      <point x="217.0" y="129.0" />
-      <point x="175.5" y="129.0" />
-      <point x="33.5" y="13.5" />
-    </edge>
-    <edge source="org.apache.ibatis.reflection.invoker.SetFieldInvoker" target="org.apache.ibatis.reflection.invoker.Invoker">
-      <point x="0.0" y="-13.5" />
-      <point x="83.0" y="278.0" />
-      <point x="227.0" y="278.0" />
-      <point x="-34.0" y="13.5" />
-    </edge>
-    <edge source="org.apache.ibatis.reflection.invoker.MethodInvoker" target="org.apache.ibatis.reflection.invoker.Invoker">
-      <point x="0.0" y="-13.5" />
-      <point x="0.0" y="13.5" />
-    </edge>
     <edge source="org.apache.ibatis.reflection.factory.DefaultObjectFactory" target="org.apache.ibatis.reflection.factory.ObjectFactory">
-      <point x="0.0" y="-13.5" />
-      <point x="0.0" y="13.5" />
-    </edge>
-    <edge source="org.apache.ibatis.reflection.wrapper.BeanWrapper" target="org.apache.ibatis.reflection.wrapper.BaseWrapper">
-      <point x="0.0" y="-13.5" />
-      <point x="67.0" y="129.0" />
-      <point x="108.5" y="129.0" />
-      <point x="-33.5" y="13.5" />
-    </edge>
-    <edge source="org.apache.ibatis.reflection.DefaultReflectorFactory" target="org.apache.ibatis.reflection.ReflectorFactory">
-      <point x="0.0" y="-13.5" />
-      <point x="0.0" y="13.5" />
-    </edge>
-    <edge source="org.apache.ibatis.reflection.wrapper.CollectionWrapper" target="org.apache.ibatis.reflection.wrapper.ObjectWrapper">
-      <point x="0.0" y="-13.5" />
-      <point x="320.0" y="52.0" />
-      <point x="268.5" y="52.0" />
-      <point x="37.5" y="13.5" />
-    </edge>
-    <edge source="org.apache.ibatis.reflection.wrapper.DefaultObjectWrapperFactory" target="org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory">
       <point x="0.0" y="-13.5" />
       <point x="0.0" y="13.5" />
     </edge>
@@ -76,6 +40,42 @@
       <point x="193.5" y="52.0" />
       <point x="-37.5" y="13.5" />
     </edge>
+    <edge source="org.apache.ibatis.reflection.wrapper.DefaultObjectWrapperFactory" target="org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory">
+      <point x="0.0" y="-13.5" />
+      <point x="0.0" y="13.5" />
+    </edge>
+    <edge source="org.apache.ibatis.reflection.wrapper.BeanWrapper" target="org.apache.ibatis.reflection.wrapper.BaseWrapper">
+      <point x="0.0" y="-13.5" />
+      <point x="67.0" y="129.0" />
+      <point x="108.5" y="129.0" />
+      <point x="-33.5" y="13.5" />
+    </edge>
+    <edge source="org.apache.ibatis.reflection.invoker.SetFieldInvoker" target="org.apache.ibatis.reflection.invoker.Invoker">
+      <point x="0.0" y="-13.5" />
+      <point x="83.0" y="278.0" />
+      <point x="227.0" y="278.0" />
+      <point x="-34.0" y="13.5" />
+    </edge>
+    <edge source="org.apache.ibatis.reflection.DefaultReflectorFactory" target="org.apache.ibatis.reflection.ReflectorFactory">
+      <point x="0.0" y="-13.5" />
+      <point x="0.0" y="13.5" />
+    </edge>
+    <edge source="org.apache.ibatis.reflection.wrapper.MapWrapper" target="org.apache.ibatis.reflection.wrapper.BaseWrapper">
+      <point x="0.0" y="-13.5" />
+      <point x="217.0" y="129.0" />
+      <point x="175.5" y="129.0" />
+      <point x="33.5" y="13.5" />
+    </edge>
+    <edge source="org.apache.ibatis.reflection.wrapper.CollectionWrapper" target="org.apache.ibatis.reflection.wrapper.ObjectWrapper">
+      <point x="0.0" y="-13.5" />
+      <point x="320.0" y="52.0" />
+      <point x="268.5" y="52.0" />
+      <point x="37.5" y="13.5" />
+    </edge>
+    <edge source="org.apache.ibatis.reflection.invoker.MethodInvoker" target="org.apache.ibatis.reflection.invoker.Invoker">
+      <point x="0.0" y="-13.5" />
+      <point x="0.0" y="13.5" />
+    </edge>
     <edge source="org.apache.ibatis.reflection.invoker.GetFieldInvoker" target="org.apache.ibatis.reflection.invoker.Invoker">
       <point x="0.0" y="-13.5" />
       <point x="439.0" y="278.0" />
@@ -83,7 +83,7 @@
       <point x="34.0" y="13.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="0.8342592592592594" x="713.0" y="450.49999999999994" />
+  <settings layout="Hierarchic Group" zoom="0.8342592592592594" x="732.0" y="450.49999999999994" />
   <SelectedNodes>
     <node>org.apache.ibatis.reflection.MetaObject</node>
   </SelectedNodes>
