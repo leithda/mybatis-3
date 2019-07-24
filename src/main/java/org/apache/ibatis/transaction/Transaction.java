@@ -27,32 +27,32 @@ import java.sql.SQLException;
 public interface Transaction {
 
   /**
-   * Retrieve inner database connection.
+   * 获得数据库连接
    * @return DataBase connection
    * @throws SQLException
    */
   Connection getConnection() throws SQLException;
 
   /**
-   * Commit inner database connection.
+   * 提交事务
    * @throws SQLException
    */
   void commit() throws SQLException;
 
   /**
-   * Rollback inner database connection.
+   * 回滚事务
    * @throws SQLException
    */
   void rollback() throws SQLException;
 
   /**
-   * Close inner database connection.
+   * 关闭数据库连接
    * @throws SQLException
    */
   void close() throws SQLException;
 
   /**
-   * Get transaction timeout if set.
+   * 获得事务超时时间
    * @throws SQLException
    */
   Integer getTimeout() throws SQLException;
