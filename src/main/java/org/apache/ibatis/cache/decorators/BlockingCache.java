@@ -36,8 +36,19 @@ import org.apache.ibatis.cache.CacheException;
  */
 public class BlockingCache implements Cache {
 
+  /**
+   * 阻塞等待超时时间
+   */
   private long timeout;
+
+  /**
+   * 装饰的Cache对象
+   */
   private final Cache delegate;
+
+  /**
+   * 缓存键与 ReentrantLock 对象的映射
+   */
   private final ConcurrentHashMap<Object, ReentrantLock> locks;
 
   public BlockingCache(Cache delegate) {
@@ -58,16 +69,21 @@ public class BlockingCache implements Cache {
   @Override
   public void putObject(Object key, Object value) {
     try {
+      // <2.1> 添加缓存
       delegate.putObject(key, value);
     } finally {
+      // <2.2> 释放锁
       releaseLock(key);
     }
   }
 
   @Override
   public Object getObject(Object key) {
+    // <1.1> 获得锁
     acquireLock(key);
+    // <1.2> 获得缓存值
     Object value = delegate.getObject(key);
+    // <1.3> 释放锁
     if (value != null) {
       releaseLock(key);
     }
@@ -77,6 +93,7 @@ public class BlockingCache implements Cache {
   @Override
   public Object removeObject(Object key) {
     // despite of its name, this method is called only to release locks
+    // 释放锁
     releaseLock(key);
     return null;
   }
@@ -91,12 +108,21 @@ public class BlockingCache implements Cache {
     return null;
   }
 
+  /**
+   * 获得 ReentrantLock 对象。如果不存在，进行添加
+   *
+   * @param key 缓存键
+   * @return ReentrantLock 对象
+   */
   private ReentrantLock getLockForKey(Object key) {
     return locks.computeIfAbsent(key, k -> new ReentrantLock());
   }
 
+
   private void acquireLock(Object key) {
+    // 获得 ReentrantLock 对象
     Lock lock = getLockForKey(key);
+    // 获得锁，直到超时
     if (timeout > 0) {
       try {
         boolean acquired = lock.tryLock(timeout, TimeUnit.MILLISECONDS);
@@ -107,12 +133,15 @@ public class BlockingCache implements Cache {
         throw new CacheException("Got interrupted while trying to acquire lock for key " + key, e);
       }
     } else {
+      // 开启锁
       lock.lock();
     }
   }
 
   private void releaseLock(Object key) {
+    // 获得 ReentrantLock 对象
     ReentrantLock lock = locks.get(key);
+    // 如果是当前线程持有锁，释放它
     if (lock.isHeldByCurrentThread()) {
       lock.unlock();
     }
