@@ -10,7 +10,7 @@
 | plugin | 核心处理层 | 插件模块 | N |
 | cursor | 核心处理层 | 游标模块 | N |
 | executor | 核心处理层 | SQL 执行 | N |
-| datasource | 基础支持层 | 数据源模块 | N |
+| datasource | 基础支持层 | 数据源模块 | [已经完成](https://github.com/leithda/mybatis-3/tree/master/src/main/java/org/apache/ibatis/datasource) |
 | transaction | 基础支持层 | 事物模块 | N |
 | cache | 基础支持层 | 缓存模块 | N |
 | parsing | 基础支持层 | 解析器模块 | [已经完成](https://github.com/leithda/mybatis-3/tree/master/src/main/java/org/apache/ibatis/parsing) |
