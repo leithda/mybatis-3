@@ -26,8 +26,9 @@ import java.lang.annotation.Target;
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Target(ElementType.TYPE)	// 注册到类
 public @interface MappedJdbcTypes {
+	
   JdbcType[] value();
   boolean includeNullJdbcType() default false;
 }
